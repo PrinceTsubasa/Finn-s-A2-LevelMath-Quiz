@@ -1,0 +1,12 @@
+.score {
+    color: white; /* Warna awal score */
+    transition: color 0.3s ease;
+  }
+  
+  .score.score-correct {
+    color: #27ae60; /* Hijau */
+  }
+  
+  .score.score-wrong {
+    color: #e74c3c; /* Merah */
+  }
