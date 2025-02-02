@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finn's A2 Level Math Quiz</title>
+  <style>
+    /* Basic dark theme styles */
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #121212;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Start screen styling */
+    #startScreen {
+      text-align: center;
+    }
+    
+    #startScreen h1 {
+      color: #2ecc71;
+      margin-bottom: 20px;
+    }
+    
+    /* Main container (quiz) */
+    .container {
+      background-color: #1e1e1e;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      max-width: 600px;
+      width: 90%;
+      color: #f0f0f0;
+      position: relative;
+      z-index: 2;
+      display: none; /* Hidden until quiz starts */
+    }
+    
+    .info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    
+    .info div {
+      font-size: 18px;
+    }
+    
+    .question-container {
+      font-size: 24px;
+      margin: 20px 0;
+      padding: 20px;
+      background-color: #2c2c2c;
+      border-radius: 5px;
+    }
+    
+    input {
+      font-size: 18px;
+      padding: 10px;
+      width: 120px;
+      margin: 10px;
+      text-align: center;
+      border: 2px solid #3498db;
+      border-radius: 5px;
+      background-color: #333;
+      color: #f0f0f0;
+    }
+    
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin: 10px;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #2980b9;
+    }
+    
+    /* Score styling: initial white text */
+    .score {
+      font-size: 20px;
+      margin: 20px 0;
+      color: white;
+      transition: color 0.3s ease;
+    }
+    
+    /* Score color when answer is correct (green) */
+    .score.score-correct {
+      color: #27ae60;
+    }
+    
+    /* Score color when answer is wrong (red) */
+    .score.score-wrong {
+      color: #e74c3c;
+    }
+    
+    .result-message {
+      margin: 20px 0;
+      font-size: 18px;
+      min-height: 24px;
+    }
+    
+    .correct {
+      color: #27ae60;
+    }
+    .wrong {
+      color: #e74c3c;
+    }
+    
+    /* Neon effects from the bottom */
+    body.correct-effect::after,
+    body.wrong-effect::after {
+      content: "";
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 30%;
+      pointer-events: none;
+      z-index: 1;
+      animation: neonGlow 1s ease-out forwards;
+    }
+    
+    body.correct-effect::after {
+      background: linear-gradient(to top, rgba(39, 174, 96, 0.8), transparent);
+    }
+    
+    body.wrong-effect::after {
+      background: linear-gradient(to top, rgba(231, 76, 60, 0.8), transparent);
+    }
+    
+    @keyframes neonGlow {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+  <div id="startScreen">
+    <h1>Finn's A2 Level Math Quiz</h1>
+    <button onclick="startQuiz()">Start Quiz</button>
+  </div>
+
+  <!-- Main Quiz Container -->
+  <div class="container" id="quizContainer">
+    <div class="info">
+      <div class="timer">Time: <span id="timer">30</span>s</div>
+      <div class="highscore">Highscore: <span id="highscore">0</span></div>
+    </div>
+    <div class="score">Score: <span id="score">0</span></div>
+    <div class="question-container">
+      <span id="question"></span>
+    </div>
+    <input type="number" id="answer" placeholder="Enter answer" step="0.01" />
+    <div class="result-message" id="result"></div>
+    <button onclick="checkAnswer()">Submit</button>
+    <button onclick="nextQuestion()" id="nextBtn" style="display: none;">Next Question</button>
+    <button onclick="resetQuiz()" id="resetBtn" style="display: none;">Restart Quiz</button>
+  </div>
+
+  <script>
+    let score = 0;
+    let currentQuestion = 1;
+    const totalQuestions = 10;
+    let correctAnswer;
+    let questionType = ''; // Tracks current question type
+    let timeLeft = 30;
+    let timerInterval;
+    
+    // Retrieve stored highscore from localStorage or set to 0
+    let highscore = localStorage.getItem('highscore') || 0;
+    document.getElementById('highscore').textContent = highscore;
+    
+    function startTimer() {
+      clearInterval(timerInterval);
+      timeLeft = 30;
+      document.getElementById('timer').textContent = timeLeft;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          endQuiz();
+        }
+      }, 1000);
+    }
+    
+    function generateQuestion() {
+      // Remove neon effects and score color classes
+      document.body.classList.remove('correct-effect', 'wrong-effect');
+      const scoreElement = document.querySelector('.score');
+      scoreElement.classList.remove('score-correct', 'score-wrong');
+    
+      // Available types: basic arithmetic and algebra (complex)
+      const types = ['+', '-', '*', '/', 'algebra'];
+      const selectedType = types[Math.floor(Math.random() * types.length)];
+      questionType = selectedType;
+      let questionText = '';
+    
+      switch (selectedType) {
+        case '+': {
+          // Addition: numbers between 50 and 200
+          const num1 = Math.floor(Math.random() * 151) + 50;
+          const num2 = Math.floor(Math.random() * 151) + 50;
+          correctAnswer = num1 + num2;
+          questionText = `${num1} + ${num2} = ?`;
+          break;
+        }
+        case '-': {
+          // Subtraction: numbers between 50 and 200
+          const num1 = Math.floor(Math.random() * 151) + 50;
+          const num2 = Math.floor(Math.random() * 151) + 50;
+          const max = Math.max(num1, num2);
+          const min = Math.min(num1, num2);
+          correctAnswer = max - min;
+          questionText = `${max} - ${min} = ?`;
+          break;
+        }
+        case '*': {
+          // Multiplication: numbers between 10 and 50
+          const num1 = Math.floor(Math.random() * 41) + 10;
+          const num2 = Math.floor(Math.random() * 41) + 10;
+          correctAnswer = num1 * num2;
+          questionText = `${num1} × ${num2} = ?`;
+          break;
+        }
+        case '/': {
+          // Division: ensure an integer result
+          const divisor = Math.floor(Math.random() * 19) + 2;  // 2 - 20
+          const quotient = Math.floor(Math.random() * 19) + 2; // 2 - 20
+          const dividend = divisor * quotient;
+          correctAnswer = quotient;
+          questionText = `${dividend} ÷ ${divisor} = ?`;
+          break;
+        }
+        case 'algebra': {
+          // More complex algebra: Solve for x in the equation: a*x + b = c*x + d
+          const x = Math.floor(Math.random() * 10) + 1; // solution between 1 and 10
+          const a = Math.floor(Math.random() * 10) + 1;
+          let c;
+          do {
+            c = Math.floor(Math.random() * 10) + 1;
+          } while (c === a);
+          const b = Math.floor(Math.random() * 21) - 10; // -10 to 10
+          // To satisfy: a*x + b = c*x + d, solve for d:
+          const d = a * x + b - c * x;
+          correctAnswer = x;
+          const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
+          const dStr = d >= 0 ? `+ ${d}` : `- ${Math.abs(d)}`;
+          questionText = `Solve for x: ${a}x ${bStr} = ${c}x ${dStr}`;
+          break;
+        }
+      }
+    
+      document.getElementById('question').textContent = questionText;
+      document.getElementById('answer').value = '';
+      document.getElementById('result').textContent = '';
+      document.getElementById('nextBtn').style.display = 'none';
+    }
+    
+    function checkAnswer() {
+      // Remove neon effects
+      document.body.classList.remove('correct-effect', 'wrong-effect');
+    
+      const userAnswer = parseFloat(document.getElementById('answer').value);
+      const resultElement = document.getElementById('result');
+      const scoreElement = document.querySelector('.score');
+    
+      // Remove previous score color classes
+      scoreElement.classList.remove('score-correct', 'score-wrong');
+    
+      if (isNaN(userAnswer)) {
+        resultElement.textContent = 'Please enter a number!';
+        resultElement.className = 'result-message wrong';
+        return;
+      }
+    
+      if (userAnswer === correctAnswer) {
+        score++;
+        document.getElementById('score').textContent = score;
+        resultElement.textContent = 'hoki aja';
+        resultElement.className = 'result-message correct';
+        scoreElement.classList.add('score-correct');
+        document.body.classList.add('correct-effect');
+      } else {
+        resultElement.textContent = `gitu doang gabisa? The correct answer was ${correctAnswer}`;
+        resultElement.className = 'result-message wrong';
+        scoreElement.classList.add('score-wrong');
+        document.body.classList.add('wrong-effect');
+      }
+    
+      // Remove neon effects after 1 second
+      setTimeout(() => {
+        document.body.classList.remove('correct-effect', 'wrong-effect');
+      }, 1000);
+    
+      document.getElementById('nextBtn').style.display = 'inline-block';
+    }
+    
+    function nextQuestion() {
+      currentQuestion++;
+      if (currentQuestion > totalQuestions) {
+        endQuiz();
+      } else {
+        generateQuestion();
+      }
+    }
+    
+    function endQuiz() {
+      clearInterval(timerInterval);
+      document.getElementById('question').textContent = `Quiz Complete! You scored ${score}/${totalQuestions}`;
+      document.getElementById('answer').style.display = 'none';
+      document.getElementById('nextBtn').style.display = 'none';
+      document.getElementById('resetBtn').style.display = 'inline-block';
+      document.getElementById('result').textContent = '';
+    
+      // Check and update highscore
+      if (score > highscore) {
+        highscore = score;
+        localStorage.setItem('highscore', highscore);
+        document.getElementById('highscore').textContent = highscore;
+      }
+    }
+    
+    function resetQuiz() {
+      score = 0;
+      currentQuestion = 1;
+      document.getElementById('score').textContent = '0';
+      document.getElementById('answer').style.display = 'inline-block';
+      document.getElementById('resetBtn').style.display = 'none';
+      document.getElementById('result').textContent = '';
+      startTimer();
+      generateQuestion();
+    }
+    
+    function startQuiz() {
+      // Hide start screen and show quiz container
+      document.getElementById('startScreen').style.display = 'none';
+      document.getElementById('quizContainer').style.display = 'block';
+      // Reset quiz variables
+      score = 0;
+      currentQuestion = 1;
+      document.getElementById('score').textContent = '0';
+      // Start timer and generate first question
+      startTimer();
+      generateQuestion();
+    }
+  </script>
+</body>
+</html>
