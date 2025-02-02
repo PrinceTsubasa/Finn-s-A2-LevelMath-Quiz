@@ -164,7 +164,7 @@
   <!-- Main Quiz Container -->
   <div class="container" id="quizContainer">
     <div class="info">
-      <div class="timer">Time: <span id="timer">30</span>s</div>
+      <div class="timer">Time: <span id="timer">180</span>s</div>
       <div class="highscore">Highscore: <span id="highscore">0</span></div>
     </div>
     <div class="score">Score: <span id="score">0</span></div>
@@ -181,10 +181,10 @@
   <script>
     let score = 0;
     let currentQuestion = 1;
-    const totalQuestions = 10;
+    const totalQuestions = 100; // Changed to 100 questions
     let correctAnswer;
     let questionType = ''; // Tracks current question type
-    let timeLeft = 30;
+    let timeLeft = 180;   // 3 minutes = 180 seconds
     let timerInterval;
     
     // Retrieve stored highscore from localStorage or set to 0
@@ -193,7 +193,7 @@
     
     function startTimer() {
       clearInterval(timerInterval);
-      timeLeft = 30;
+      timeLeft = 180;
       document.getElementById('timer').textContent = timeLeft;
       timerInterval = setInterval(() => {
         timeLeft--;
@@ -262,7 +262,6 @@
             c = Math.floor(Math.random() * 10) + 1;
           } while (c === a);
           const b = Math.floor(Math.random() * 21) - 10; // -10 to 10
-          // To satisfy: a*x + b = c*x + d, solve for d:
           const d = a * x + b - c * x;
           correctAnswer = x;
           const bStr = b >= 0 ? `+ ${b}` : `- ${Math.abs(b)}`;
